@@ -75,7 +75,7 @@ today, and says so on stderr.
 --starts-on and --ends-on name days in that same zone, and --ends-on is included. An
 event is listed when it overlaps those days, so an evening event is on its own day and not
 on the next UTC day. An all-day event is listed on the dates it names. A repeating series
-is listed as the row HEY stores.`,
+is listed as the row HEY stores, unless the series starts after the last day.`,
 		Example: `  hey event list
   hey event list --starts-on 2026-01-01 --ends-on 2026-01-31
   hey event list --calendar 123 --limit 5 --json`,
@@ -312,9 +312,9 @@ one, or the later where neither is; a time you keep at the other, or with second
 be sent, so the edit refuses until you retype it. All of this holds for an --occurrence edit too.
 
 The event is found by reading every calendar it might be on, which is one request each and
-covers the pages HEY answers with. Give the day it starts as [date] to look on that day.
-The read covers the day before and the day after it too, so an evening or an early morning
-event is found by the date you see it on.
+covers the pages HEY answers with. Give the day it starts as [date] to look from the day
+before it to the day after it, so an evening or early-morning event is found by the date it
+shows on.
 
 --calendar moves the event to that calendar, which has to be one you own or share: not
 your personal calendar and not a subscription. An event you cannot edit, such as an
