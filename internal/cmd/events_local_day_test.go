@@ -150,6 +150,44 @@ func TestEventsEditFindsAnEveningEventByItsLocalDate(t *testing.T) {
 	}
 }
 
+const (
+	zonedSupper    = `{"id":4901,"title":"Supper with Maria Lopez","starts_at":"2026-09-21T01:30:00Z","ends_at":"2026-09-21T02:30:00Z","type":"Calendar::Event"}`
+	zonedBreakfast = `{"id":4902,"title":"Early breakfast with Priya Patel","starts_at":"2026-09-19T15:30:00Z","ends_at":"2026-09-19T16:30:00Z","type":"Calendar::Event"}`
+	zonedHoliday   = `{"id":4903,"title":"Company holiday","all_day":true,"starts_at":"2026-09-20T00:00:00Z","ends_at":"2026-09-20T00:00:00Z","type":"Calendar::Event"}`
+)
+
+func TestEventsDayPrintsTimesInTheAccountZone(t *testing.T) {
+	inLocalZone(t, 0)
+	server := &localDayServer{zone: "America/New_York", paths: map[string]string{
+		"/calendar/days/2026-09-21.json": localDayJSON("day", "2026-09-21", "2026-09-21", zonedSupper, ""),
+	}}
+	stdout, _, err := runFormattedCommandWithStderr(t, server, []string{"--styled"}, "event", "day", "2026-09-20")
+	if err != nil || !strings.Contains(stdout, "2026-09-20T21:30") {
+		t.Errorf("event day = %s, %v, want the supper at 2026-09-20T21:30", stdout, err)
+	}
+}
+
+func TestEventsDayInTokyoListsTheAllDayEventFirst(t *testing.T) {
+	inLocalZone(t, 0)
+	server := &localDayServer{zone: "Asia/Tokyo", paths: map[string]string{
+		"/calendar/days/2026-09-19.json": localDayJSON("day", "2026-09-19", "2026-09-19", zonedBreakfast, ""),
+		"/calendar/days/2026-09-20.json": localDayJSON("day", "2026-09-20", "2026-09-20", zonedHoliday, ""),
+	}}
+	stdout, _, err := runFormattedCommandWithStderr(t, server, []string{"--styled"}, "event", "day", "2026-09-20", "--limit", "1")
+	if err != nil || !strings.Contains(stdout, "Company holiday") || strings.Contains(stdout, "Early breakfast") {
+		t.Errorf("event day = %s, %v, want only the all-day event", stdout, err)
+	}
+}
+
+func TestEventsListPrintsTimesInTheAccountZone(t *testing.T) {
+	inLocalZone(t, 0)
+	server := &localDayServer{zone: "Asia/Tokyo", recordings: `{"Calendar::Event":[` + zonedBreakfast + `]}`}
+	stdout, _, err := runFormattedCommandWithStderr(t, server, []string{"--styled"}, "event", "list", "--calendar", "9102", "--starts-on", "2026-09-20", "--ends-on", "2026-09-20")
+	if err != nil || !strings.Contains(stdout, "2026-09-20T00:30") {
+		t.Errorf("event list = %s, %v, want the breakfast at 2026-09-20T00:30", stdout, err)
+	}
+}
+
 func TestEventsDayInUTCReadsNoNeighbourDay(t *testing.T) {
 	server := &localDayServer{zone: "Etc/UTC"}
 	runLocalDay(t, server, "event", "day", "2026-09-20")

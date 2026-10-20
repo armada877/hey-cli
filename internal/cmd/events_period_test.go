@@ -93,7 +93,7 @@ func TestEventsPeriodShowsTheEventsCountdown(t *testing.T) {
 		{"week", "/calendar/weeks/2026-09-28.json"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler := withLocalDays(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodGet || r.URL.Path != tt.path {
 					t.Errorf("request = %s %s, want %s", r.Method, r.URL.Path, tt.path)
 					http.NotFound(w, r)
@@ -105,7 +105,7 @@ func TestEventsPeriodShowsTheEventsCountdown(t *testing.T) {
 					`{"id":301,"title":"Calendar countdown check-in","starts_at":"2026-09-28T19:00:00Z","ends_at":"2026-09-28T19:30:00Z","type":"Calendar::Event","calendar":{"id":9,"name":"Personal"}},`+
 					`{"id":302,"title":"Project planning","starts_at":"2026-09-28T21:00:00Z","ends_at":"2026-09-28T21:30:00Z","type":"Calendar::Event","calendar":{"id":9,"name":"Personal"}}],`+
 					`"Calendar::Countdown":[{"id":303,"parent_id":301,"label":"2 days before","starts_at":"2026-09-26T00:00:00Z","ends_at":"2026-09-28T00:00:00Z","type":"Calendar::Countdown"}]}}`)
-			})
+			}))
 
 			response, err := runJSONCommand(t, handler, "event", tt.name, "2026-09-28")
 			if err != nil {
@@ -339,7 +339,7 @@ func TestEventsPeriodStyledPublishesOccurrenceIdentifiers(t *testing.T) {
 		{name: "week", period: "week", path: "/calendar/weeks/2026-09-15.json"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			styled, err := runStyledCommand(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			styled, err := runStyledCommand(t, withLocalDays(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodGet || r.URL.Path != tt.path {
 					t.Errorf("request = %s %s, want %s", r.Method, r.URL.Path, tt.path)
 					http.NotFound(w, r)
@@ -349,7 +349,7 @@ func TestEventsPeriodStyledPublishesOccurrenceIdentifiers(t *testing.T) {
 				_, _ = io.WriteString(w, `{"kind":"`+tt.period+`","recordings":{"Calendar::Event":[`+
 					`{"parent_id":204,"occurrence_id":"204_2026-09-15","title":"Standup","starts_at":"2026-09-15T09:15:00Z","ends_at":"2026-09-15T09:30:00Z","type":"Calendar::Event","calendar":{"id":9,"name":"Work"}},`+
 					`{"id":9001,"parent_id":4821,"occurrence_id":"4821_2026-09-13","title":"Design review","starts_at":"2026-09-15T13:30:00Z","ends_at":"2026-09-15T14:30:00Z","type":"Calendar::Event","calendar":{"id":9,"name":"Work"}}]}}`)
-			}), "event", tt.name, "2026-09-15")
+			})), "event", tt.name, "2026-09-15")
 			if err != nil {
 				t.Fatalf("execute event %s: %v", tt.name, err)
 			}
@@ -432,10 +432,10 @@ func TestEventsDaySortsTheAllDayBandFirst(t *testing.T) {
 // all-day date is the day it names and does not shift.
 func TestEventBoundaryDrawsTheReadersClock(t *testing.T) {
 	inLocalZone(t, 2)
-	if got := eventBoundary(time.Date(2026, 9, 2, 14, 0, 0, 0, time.UTC), false); got != "2026-09-02T16:00" {
+	if got := eventBoundary(time.Date(2026, 9, 2, 14, 0, 0, 0, time.UTC), false, time.Local); got != "2026-09-02T16:00" {
 		t.Errorf("timed boundary = %q, want the reader's 16:00", got)
 	}
-	if got := eventBoundary(time.Date(2026, 9, 2, 0, 0, 0, 0, time.UTC), true); got != "2026-09-02" {
+	if got := eventBoundary(time.Date(2026, 9, 2, 0, 0, 0, 0, time.UTC), true, time.Local); got != "2026-09-02" {
 		t.Errorf("all-day boundary = %q, want the unshifted day", got)
 	}
 }
